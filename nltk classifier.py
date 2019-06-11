@@ -9,13 +9,14 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 def load_dataset():
-    with open("simplified.json") as f:
+    with open("dataset.json") as f:
         data = json.load(f)
 
     tagged_sentences = []
     for _, doc in data.items():
         for _, sent in doc.items():
-            # remove fullstop at the end of each sentence
+            # remove full stop at the end of each sentence
+            # and only take the fist tag
             tagged_sentences.append([(tok[0], tok[1][0]) for _, tok in list(sent.items())[:-1]])
 
     print(tagged_sentences[0])
