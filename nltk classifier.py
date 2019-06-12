@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+import inspect
 import json
+import os
+from collections import Counter
+from datetime import datetime
 
 from sklearn.feature_extraction import DictVectorizer
+from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import LinearSVC
 
 
 def load_dataset():
@@ -23,9 +27,6 @@ def load_dataset():
     print("Tagged sentences: ", len(tagged_sentences))
     print("Tagged words:", sum(map(len, tagged_sentences)))
     return tagged_sentences
-
-
-tagged_sentences = load_dataset()
 
 
 def features(sentence, index):
@@ -55,12 +56,6 @@ def untag(tagged_sentence):
     return [w for w, t in tagged_sentence]
 
 
-# Split the dataset for training and testing
-cutoff = int(.9 * len(tagged_sentences))
-training_sentences = tagged_sentences[:cutoff]
-test_sentences = tagged_sentences[cutoff:]
-
-
 def transform_to_dataset(tagged_sentences):
     X, y = [], []
 
@@ -72,14 +67,24 @@ def transform_to_dataset(tagged_sentences):
     return X, y
 
 
-X, y = transform_to_dataset(training_sentences)
+if __name__ == '__main__':
+    tagged_sentences = load_dataset()
+    X, y = transform_to_dataset(tagged_sentences)
+    print(Counter(y))
 
-clf = Pipeline([
-    ('vectorizer', DictVectorizer(sparse=False)),
-    ('classifier', DecisionTreeClassifier(criterion='entropy'))
-])
-clf.fit(X, y)
-print('Training completed')
+    clf = Pipeline([
+        ('vectorizer', DictVectorizer(sparse=False)),
+        ('classifier', LinearSVC())
+    ])
 
-X_test, y_test = transform_to_dataset(test_sentences)
-print("Accuracy:", clf.score(X_test, y_test))
+    start = datetime.now()
+    scores = cross_val_score(clf, X, y, cv=10, n_jobs=-1)
+    acc = "%0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2)
+    print("Accuracy:", acc)
+    with open(os.path.join("results", datetime.now().isoformat(" ", "seconds") + ".json"), "w") as f:
+        json.dump(
+            {"runtime": f"{datetime.now()-start}",
+             "accuracy": acc,
+             "featurefun": inspect.getsource(features),
+             "clf": repr(clf)},
+            f, indent=2)
