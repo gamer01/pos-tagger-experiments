@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
+
 import inspect
 import json
 import os
+import subprocess
 from collections import Counter
 from datetime import datetime
 
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
-from sklearn.svm import LinearSVC
 
 
 def load_dataset():
@@ -74,17 +76,26 @@ if __name__ == '__main__':
 
     clf = Pipeline([
         ('vectorizer', DictVectorizer(sparse=False)),
-        ('classifier', LinearSVC())
+        ('classifier', RandomForestClassifier())
     ])
 
     start = datetime.now()
     scores = cross_val_score(clf, X, y, cv=10, n_jobs=-1)
+    end = datetime.now()
+
     acc = "%0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2)
     print("Accuracy:", acc)
-    with open(os.path.join("results", datetime.now().isoformat(" ", "seconds") + ".json"), "w") as f:
+
+    timestamp = start.isoformat(" ", "seconds")
+    commit_id = subprocess.run("git rev-parse --short HEAD".split(" "), capture_output=True).stdout.decode(
+        "utf-8").strip()
+
+    with open(os.path.join("results", timestamp + ".json"), "w") as f:
         json.dump(
-            {"runtime": f"{datetime.now()-start}",
+            {"start time": timestamp,
+             "runtime": f"{end-start}",
+             "git commit id": commit_id,
              "accuracy": acc,
-             "featurefun": inspect.getsource(features),
-             "clf": repr(clf)},
+             "feature func": inspect.getsource(features),
+             "classifier": repr(clf)},
             f, indent=2)
