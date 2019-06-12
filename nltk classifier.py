@@ -4,6 +4,7 @@
 import inspect
 import json
 import os
+import socket
 import subprocess
 from collections import Counter
 from datetime import datetime
@@ -90,11 +91,13 @@ if __name__ == '__main__':
     commit_id = subprocess.run("git rev-parse --short HEAD".split(" "), capture_output=True).stdout.decode(
         "utf-8").strip()
 
+    os.makedirs("results", exist_ok=True)
     with open(os.path.join("results", timestamp + ".json"), "w") as f:
         json.dump(
             {"start time": timestamp,
              "runtime": f"{end-start}",
              "git commit id": commit_id,
+             "hostname": socket.gethostname(),
              "accuracy": acc,
              "feature func": inspect.getsource(features),
              "classifier": repr(clf)},
