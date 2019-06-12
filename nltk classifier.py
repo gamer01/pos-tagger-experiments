@@ -9,9 +9,9 @@ import subprocess
 from collections import Counter
 from datetime import datetime
 
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import cross_val_score
+from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 
 
@@ -24,7 +24,8 @@ def load_dataset():
         for _, sent in doc.items():
             # remove full stop at the end of each sentence
             # and only take the fist tag
-            tagged_sentences.append([(tok[0], tok[1][0]) for _, tok in list(sent.items())[:-1]])
+            # and drop inheritance relations of tags
+            tagged_sentences.append([(tok, tag[0].split("<")[0]) for _, (tok, tag) in list(sent.items())[:-1]])
 
     print(tagged_sentences[0])
     print("Tagged sentences: ", len(tagged_sentences))
@@ -77,7 +78,7 @@ if __name__ == '__main__':
 
     clf = Pipeline([
         ('vectorizer', DictVectorizer(sparse=False)),
-        ('classifier', RandomForestClassifier())
+        ('classifier', MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2)))
     ])
 
     start = datetime.now()
@@ -99,6 +100,7 @@ if __name__ == '__main__':
              "git commit id": commit_id,
              "hostname": socket.gethostname(),
              "accuracy": acc,
+             "dataset modifications": inspect.getsource(load_dataset),
              "feature func": inspect.getsource(features),
              "classifier": repr(clf)},
             f, indent=2)
