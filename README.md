@@ -7,7 +7,8 @@ currently word accuracies arround 88% are achieved.
 A diacronic corpus of Middle Low German. The dataset is a from a research project and can currently not be published, but it will probably be published here in the future
 
 The structure of the dataset json ist very simple:
-   {
+
+    {
       "Document 1": {    <-- document name
         "s001": {        <-- sentence id
           "t01": [       <-- token id
