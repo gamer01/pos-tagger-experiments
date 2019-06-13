@@ -100,6 +100,8 @@ if __name__ == '__main__':
              "git commit id": commit_id,
              "hostname": socket.gethostname(),
              "accuracy": acc,
+             "n sentences": len(tagged_sentences),
+             "n_words" : len(X),
              "dataset modifications": inspect.getsource(load_dataset),
              "feature func": inspect.getsource(features),
              "classifier": repr(clf)},
