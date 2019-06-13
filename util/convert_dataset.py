@@ -17,7 +17,7 @@ def load_dataset():
     return tagged_sentences
 
 
-def tagged_sents_tostring(sents, dlm="_"):
+def tagged_sents_tostring(sents, dlm="/"):
     lines = []
     for sent in sents:
         lines.append(" ".join([tok + dlm + tag for tok, tag in sent]))
