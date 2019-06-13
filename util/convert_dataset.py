@@ -1,7 +1,5 @@
 import json
-from collections import Counter
-
-import pandas as pd
+from random import shuffle
 
 
 def load_dataset():
@@ -28,6 +26,12 @@ def tagged_sents_tostring(sents, dlm="_"):
 
 if __name__ == '__main__':
     tagged_sentences = load_dataset()
+    split = int(.9 * len(tagged_sentences))
+    shuffle(tagged_sentences)
 
     with open("dataset.tagged", "w") as f:
         print(tagged_sents_tostring(tagged_sentences), file=f)
+    with open("train.tagged", "w") as f:
+        print(tagged_sents_tostring(tagged_sentences[:split]), file=f)
+    with open("eval.tagged", "w") as f:
+        print(tagged_sents_tostring(tagged_sentences[split:]), file=f)
