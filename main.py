@@ -11,7 +11,7 @@ from datetime import datetime
 
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import cross_val_score
-from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     clf = Pipeline([
         ('vectorizer', DictVectorizer(sparse=False)),
-        ('classifier', MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2)))
+        ('classifier', LogisticRegression(solver='lbfgs', max_iter=1000, multi_class='multinomial'))
     ])
 
     start = datetime.now()
