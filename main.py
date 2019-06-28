@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     clf = Pipeline([
         ('vectorizer', DictVectorizer(sparse=False)),
-        ('classifier', LogisticRegression(solver='lbfgs', max_iter=1000, multi_class='multinomial'))
+        ('classifier', LogisticRegression())
     ])
 
     start = datetime.now()
