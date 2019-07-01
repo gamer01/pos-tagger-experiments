@@ -12,8 +12,7 @@ def load_dataset(file, merged=False):
     for _, doc in data.items():
         for _, sent in doc.items():
             # and drop inheritance relations of tags
-            tagged_sentences.append(
-                [(tok, [tag.split("<")[0] for tag in tags]) for _, (tok, tags) in list(sent.items())])
+            tagged_sentences.append([(tok, tags) for _, (tok, tags) in list(sent.items())])
         docs.append(tagged_sentences)
         tagged_sentences = []
 
