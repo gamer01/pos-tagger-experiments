@@ -1,10 +1,9 @@
 import json
 from itertools import chain
-from logging import info
 from random import shuffle, randrange
 
 
-def load_dataset(file):
+def load_dataset(file, merged=False):
     with open(file) as f:
         data = json.load(f)
 
@@ -18,10 +17,12 @@ def load_dataset(file):
         docs.append(tagged_sentences)
         tagged_sentences = []
 
+    if merged:
+        return "\n".join(docs)
     return docs
 
 
-def split(tagged_sents, fraction=.9, randomized=True):
+def singlesplit(tagged_sents, fraction=.9, randomized=True):
     '''
     shuffle sentences
     select starttoken randomly (needed, because maybe there are to little sentences)
@@ -37,12 +38,35 @@ def split(tagged_sents, fraction=.9, randomized=True):
     cut1 = randrange(0, n_toks)
     cut2 = (cut1 + int(fraction * n_toks)) % n_toks
 
+    return _split(cut1, cut2, tagged_sents)
+
+
+def kfoldsplit(tagged_sents, k=10, randomized=True):
+    '''
+    shuffle sentences
+    select starttoken randomly (needed, because maybe there are to little sentences)
+    select endtoken by fraction
+    :param tagged_sentences:  [[(tok1,[tag1,tag2]),(tok2....
+    :param fraction:
+    :return:
+    '''
+    if randomized:
+        shuffle(tagged_sents)
+    n_toks = sum((len(sent) for sent in tagged_sents))
+
+    cut2 = randrange(0, n_toks)
+    for i in range(k):
+        # start anywhere than we shift always ntoks//k
+        cut1 = cut2
+        cut2 = (cut1 + n_toks - n_toks // k) % n_toks
+        yield _split(cut1, cut2, tagged_sents)
+
+
+def _split(cut1, cut2, tagged_sents):
     # this means we will flip cutting positions and also flip the returned arrays
     invert = cut1 > cut2
     if invert:
         cut1, cut2 = cut2, cut1
-    info(f"invert:{invert}  cuts:{cut1},{cut2} ntoks:{n_toks}")
-
     outer, inner = [], []
     i = -1  # preincrement
     for sent in tagged_sents:
@@ -65,11 +89,10 @@ def split(tagged_sents, fraction=.9, randomized=True):
                 inner.append(new_sent)
             else:
                 outer.append(new_sent)
-
     return (outer, inner) if invert else (inner, outer)
 
 
-assert sum((len(sent) for sent in split([
+assert sum((len(sent) for sent in singlesplit([
     "a b c".split(),
     "4 4 3 2 3 4 4 3 2 9 9 9 5 4 3 2 3".split()
 ])[1])) == 2
@@ -87,7 +110,7 @@ if __name__ == '__main__':
     train_sents = []
     eval_sents = []
     for tagged_sents in docs:
-        train, eval = split(tagged_sents)
+        train, eval = singlesplit(tagged_sents)
         train_sents.extend(train)
         eval_sents.extend(eval)
 

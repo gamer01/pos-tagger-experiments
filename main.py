@@ -6,31 +6,16 @@ import json
 import os
 import socket
 import subprocess
-from collections import Counter
 from datetime import datetime
 
+import numpy as np
+from joblib import Parallel, delayed
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
-
-def load_dataset():
-    with open("dataset.json") as f:
-        data = json.load(f)
-
-    tagged_sentences = []
-    for _, doc in data.items():
-        for _, sent in doc.items():
-            # remove full stop at the end of each sentence
-            # and only take the fist tag
-            # and drop inheritance relations of tags
-            tagged_sentences.append([(tok, tag[0].split("<")[0]) for _, (tok, tag) in list(sent.items())[:-1]])
-
-    print(tagged_sentences[0])
-    print("Tagged sentences: ", len(tagged_sentences))
-    print("Tagged words:", sum(map(len, tagged_sentences)))
-    return tagged_sentences
+from util import convert_dataset
 
 
 def features(sentence, index):
@@ -66,15 +51,34 @@ def transform_to_dataset(tagged_sentences):
     for tagged in tagged_sentences:
         for index in range(len(tagged)):
             X.append(features(untag(tagged), index))
-            y.append(tagged[index][1])
+            # only take first tag
+            y.append(tagged[index][1][0])
 
     return X, y
 
 
+def fit_and_score(cls, Xtrain, ytrain, Xeval, yeval):
+    cls.fit(Xtrain, ytrain)
+    return clf.score(Xeval, yeval)
+
+
 if __name__ == '__main__':
-    tagged_sentences = load_dataset()
-    X, y = transform_to_dataset(tagged_sentences)
-    print(Counter(y))
+    docs = convert_dataset.load_dataset("dataset.json")
+    k = 10
+    splitters = []
+    for tagged_sents in docs:
+        splitters.append(convert_dataset.kfoldsplit(tagged_sents, k=k))
+
+    splits = []
+    for _ in range(k):
+        train_sents = []
+        eval_sents = []
+        for splitter in splitters:
+            train, eval = next(splitter)
+            train_sents.extend(train)
+            eval_sents.extend(eval)
+
+        splits.append(transform_to_dataset(train_sents) + transform_to_dataset(eval_sents))
 
     clf = Pipeline([
         ('vectorizer', DictVectorizer(sparse=False)),
@@ -82,7 +86,7 @@ if __name__ == '__main__':
     ])
 
     start = datetime.now()
-    scores = cross_val_score(clf, X, y, cv=10, n_jobs=-1)
+    scores = np.array(Parallel(-1)(delayed(fit_and_score)(clf, *split) for split in splits))
     end = datetime.now()
 
     acc = "%0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2)
@@ -100,9 +104,9 @@ if __name__ == '__main__':
              "git commit id": commit_id,
              "hostname": socket.gethostname(),
              "accuracy": acc,
-             "n sentences": len(tagged_sentences),
-             "n words": len(X),
-             "dataset modifications": inspect.getsource(load_dataset),
+             "n sentences": sum(len(doc) for doc in docs),
+             "n words": sum(len(split) for split in splits[0][1:2:3]),
+             "dataset modifications": inspect.getsource(convert_dataset.load_dataset),
              "feature func": inspect.getsource(features),
              "classifier": repr(clf)},
             f, indent=2)
